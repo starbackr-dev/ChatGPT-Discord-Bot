@@ -9,6 +9,7 @@ const dotenv = require('dotenv');
 const { Configuration, OpenAIApi } = require("openai");
 // Require global functions
 const { initPersonalities } = require(path.join(__dirname, "common.js"));
+const axios = require('axios');
 
 // Initialize dotenv config file
 const args = process.argv.slice(2);
@@ -152,6 +153,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
 client.on('messageCreate', async msg => {
 	// Don't do anything when not in bot channel
+
+	console.log('Incoming messge: ', msg.content);
 	const channelCond = [msg.channelId, msg.channel.name, msg.channel?.parentId, msg.channel?.parent?.name];
 	if (channelIds != "" && typeof channelIds !== 'undefined' && !channelCond.some(cond => channelIds.includes(cond))) {
 		return;
@@ -275,32 +278,33 @@ client.on('messageCreate', async msg => {
 // API request function
 async function chat(requestX, msg){
 	try {
-		// Make API request
-		const completion = await openai.createChatCompletion({
-		model: "gpt-3.5-turbo",
-		messages: requestX
-		});
+
+		console.log('Request: ', requestX);
+
+		let response = await axios.post(process.env.BACKEND_URL, {content: msg.content});
+
+		console.log(response.data.response);
 
 		// Increase token counter if not admin
 		if (!isAdmin(msg) && !isUnrestricted) {
-			state.tokenCount += completion.data.usage.completion_tokens;
+			state.tokenCount += 500;
 		}
 
 		// Increase total token count
-		state.totalTokenCount += completion.data.usage.total_tokens;
+		state.totalTokenCount += 500;
 
 		let responseContent;
 
 		// Check capitlization mode
 		switch (process.env.CASE_MODE) {
 			case "":
-				responseContent = completion.data.choices[0].message.content;
+				responseContent = response.data.response;
 				break;
 			case "upper":
-				responseContent = completion.data.choices[0].message.content.toUpperCase();
+				responseContent = data.response.data.response.toUpperCase();
 				break;
 			case "lower":
-				responseContent = completion.data.choices[0].message.content.toLowerCase();
+				responseContent = data.response.data.response.toLowerCase();
 				break;
 			default:
 				console.log('[WARNING] Invalid CASE_MODE value. Please change and restart bot.');
